@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FLoBC — Blockchain Federated Learning Dashboard</title>
+
+  <!-- Chart.js for accuracy and trust charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --card:     #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --yellow:   #d29922;
+      --text:     #c9d1d9;
+      --subtext:  #8b949e;
+      --rust:     #e05a2b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 { font-size: 20px; font-weight: 600; color: var(--accent); }
+    header p  { color: var(--subtext); font-size: 12px; }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .badge-rust   { background: #2d1a0e; color: var(--rust);   border: 1px solid var(--rust); }
+    .badge-python { background: #0c2433; color: var(--accent);  border: 1px solid var(--accent); }
+    .badge-ecdsa  { background: #0e2a1a; color: var(--green);   border: 1px solid var(--green); }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .dot-online  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .dot-offline { background: var(--red); }
+    .dot-unknown { background: var(--yellow); }
+
+    main {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .card-full { grid-column: 1 / -1; }
+
+    .card h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .stat-label { font-size: 11px; color: var(--subtext); }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.red    { color: var(--red); }
+    .stat-value.yellow { color: var(--yellow); }
+
+    .chart-wrap { position: relative; height: 220px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 6px 8px;
+      color: var(--subtext);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:nth-child(even) { background: #0d1117; }
+    tbody td {
+      padding: 6px 8px;
+      color: var(--text);
+      vertical-align: middle;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .pill-green  { background: #0e2a1a; color: var(--green); }
+    .pill-red    { background: #2a0e0e; color: var(--red); }
+    .pill-yellow { background: #2a2205; color: var(--yellow); }
+    .pill-blue   { background: #0c2433; color: var(--accent); }
+
+    .trust-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .trust-bar-bg {
+      flex: 1; height: 8px; background: var(--border); border-radius: 4px;
+    }
+    .trust-bar-fill {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.4s ease;
+    }
+
+    .node-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .node-chip {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+    .node-chip .role { color: var(--subtext); font-size: 10px; display: block; }
+
+    .refresh-bar {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 8px 24px;
+      font-size: 11px;
+      color: var(--subtext);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      bottom: 0;
+    }
+
+    .error-msg { color: var(--red); font-size: 12px; padding: 8px; }
+
+    #last-update { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>FLoBC — Blockchain Federated Learning</h1>
+    <p>Real-time dashboard powered by Wire API &amp; Rust pBFT blockchain node</p>
+  </div>
+  <span class="badge badge-rust">Rust pBFT</span>
+  <span class="badge badge-python">Flask HTTP API</span>
+  <span class="badge badge-ecdsa">ECDSA secp256k1</span>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+    <span>Rust node:
+      <span class="status-dot dot-unknown" id="rust-dot"></span>
+      <span id="rust-status">checking...</span>
+    </span>
+    <span>Wire API:
+      <span class="status-dot dot-unknown" id="wire-dot"></span>
+      <span id="wire-status">checking...</span>
+    </span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Row 1: summary stats -->
+  <div class="card card-full">
+    <h2>System Overview</h2>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-label">FL Round</div>
+        <div class="stat-value" id="stat-round">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Global Accuracy</div>
+        <div class="stat-value green" id="stat-acc">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Blockchain Blocks</div>
+        <div class="stat-value" id="stat-blocks">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Total Transactions</div>
+        <div class="stat-value" id="stat-tx">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Chain Valid</div>
+        <div class="stat-value green" id="stat-valid">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Consensus</div>
+        <div class="stat-value" style="font-size:13px; color:var(--yellow)">pBFT &gt;2/3</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Crypto</div>
+        <div class="stat-value" style="font-size:12px; color:var(--green)">ECDSA secp256k1</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Blockchain Backend</div>
+        <div class="stat-value" style="font-size:12px; color:var(--rust)">Rust + actix-web</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accuracy chart -->
+  <div class="card" style="grid-column: span 2;">
+    <h2>FL Global Model Accuracy</h2>
+    <div class="chart-wrap">
+      <canvas id="acc-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Trust scores chart -->
+  <div class="card">
+    <h2>Trust Scores per Hospital</h2>
+    <div class="chart-wrap">
+      <canvas id="trust-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Trust bars (current round) -->
+  <div class="card">
+    <h2>Current Trust Scores</h2>
+    <div id="trust-bars"></div>
+  </div>
+
+  <!-- Blockchain blocks table -->
+  <div class="card card-full">
+    <h2>Blockchain Blocks (latest 10)</h2>
+    <table id="chain-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Hash</th>
+          <th>Prev Hash</th>
+          <th>Merkle Root</th>
+          <th>Txs</th>
+          <th>Validator</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="chain-tbody">
+        <tr><td colspan="7" style="color:var(--subtext); text-align:center; padding:20px;">
+          Waiting for blockchain data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Network nodes -->
+  <div class="card card-full">
+    <h2>Network Nodes (ECDSA secp256k1 Credentials)</h2>
+    <div class="node-list" id="node-list">
+      <p style="color:var(--subtext)">Loading node credentials...</p>
+    </div>
+  </div>
+
+</main>
+
+<div class="refresh-bar">
+  <span>Wire API: <code id="wire-url">http://127.0.0.1:8080</code></span>
+  <span>Rust node: <code>http://127.0.0.1:8100</code></span>
+  <span>Last updated: <span id="last-update">—</span></span>
+  <span>Auto-refresh every 3s</span>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────────────────────
+// Configuration
+// ────────────────────────────────────────────────────────────────────────────
+const WIRE_API = "http://127.0.0.1:8080";
+const RUST_API = "http://127.0.0.1:8100";
+const REFRESH  = 3000;   // ms
+
+// Hospital names for display
+const HOSPITAL_NAMES = {
+  "0": "Galle",
+  "1": "Colombo",
+  "2": "Kandy",
+  "3": "Jaffna",
+};
+
+const COLORS = ["#58a6ff", "#3fb950", "#d29922", "#f85149"];
+
+// ────────────────────────────────────────────────────────────────────────────
+// Chart setup
+// ────────────────────────────────────────────────────────────────────────────
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: "#c9d1d9", font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } },
+    y: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } },
+  },
+};
+
+// Accuracy chart
+const accCtx   = document.getElementById("acc-chart").getContext("2d");
+const accChart = new Chart(accCtx, {
+  type: "line",
+  data: {
+    labels:   [],
+    datasets: [{
+      label:           "Global Accuracy",
+      data:            [],
+      borderColor:     "#58a6ff",
+      backgroundColor: "rgba(88,166,255,0.08)",
+      borderWidth:     2,
+      pointRadius:     3,
+      fill:            true,
+      tension:         0.3,
+    }],
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, min: 0, max: 1 },
+    },
+    plugins: {
+      ...chartDefaults.plugins,
+      tooltip: { callbacks: {
+        label: ctx => `Accuracy: ${(ctx.parsed.y * 100).toFixed(2)}%`,
+      }},
+    },
+  },
+});
+
+// Trust chart
+const trustCtx   = document.getElementById("trust-chart").getContext("2d");
+const trustChart = new Chart(trustCtx, {
+  type: "line",
+  data: { labels: [], datasets: [] },
+  options: {
+    ...chartDefaults,
+    scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, min: 0, max: 1 },
+    },
+  },
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────────────────────
+function short(s, n=14) {
+  if (!s) return "—";
+  return s.length > n ? s.slice(0, n) + "..." : s;
+}
+
+function ts(epoch) {
+  if (!epoch) return "—";
+  return new Date(epoch * 1000).toLocaleTimeString();
+}
+
+function setStatus(dotId, labelId, ok, text) {
+  const dot   = document.getElementById(dotId);
+  const label = document.getElementById(labelId);
+  dot.className = "status-dot " + (ok ? "dot-online" : "dot-offline");
+  label.textContent = text;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Data fetching
+// ────────────────────────────────────────────────────────────────────────────
+async function fetchJSON(url, timeout=4000) {
+  const ctrl = new AbortController();
+  const id   = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(id);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) {
+    clearTimeout(id);
+    return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Trust bars
+// ────────────────────────────────────────────────────────────────────────────
+function renderTrustBars(scores) {
+  const el = document.getElementById("trust-bars");
+  if (!scores || Object.keys(scores).length === 0) {
+    el.innerHTML = "<p style='color:var(--subtext)'>No trust data yet.</p>";
+    return;
+  }
+  el.innerHTML = Object.entries(scores).map(([tid, score]) => {
+    const name = HOSPITAL_NAMES[tid] || `Trainer ${tid}`;
+    const pct  = (score * 100).toFixed(1);
+    const col  = score < 0.05 ? "var(--red)"
+               : score < 0.15 ? "var(--yellow)"
+               :                "var(--accent)";
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+          <span style="font-size:12px;">${name}</span>
+          <span style="font-size:12px;color:${col}">${pct}%</span>
+        </div>
+        <div class="trust-bar-bg">
+          <div class="trust-bar-fill"
+               style="width:${pct}%; background:${col};"></div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Chain table
+// ────────────────────────────────────────────────────────────────────────────
+function renderChainTable(blocks) {
+  if (!blocks || blocks.length === 0) return;
+  const tbody = document.getElementById("chain-tbody");
+  const recent = blocks.slice(-10).reverse();
+  tbody.innerHTML = recent.map(b => {
+    const isGenesis = b.index === 0;
+    return `<tr>
+      <td><span class="pill ${isGenesis ? 'pill-yellow' : 'pill-blue'}">#${b.index}</span></td>
+      <td>${short(b.block_hash || b.hash)}</td>
+      <td>${short(b.previous_hash || b.prev)}</td>
+      <td>${short(b.merkle_root || b.merkle)}</td>
+      <td>${b.tx_count !== undefined ? b.tx_count : (b.transactions ? b.transactions.length : '—')}</td>
+      <td>${short(b.validator)}</td>
+      <td>${ts(b.timestamp)}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Node credentials panel
+// ────────────────────────────────────────────────────────────────────────────
+function renderNodes(nodes) {
+  const el = document.getElementById("node-list");
+  if (!nodes || nodes.length === 0) {
+    el.innerHTML = "<p style='color:var(--subtext)'>No nodes registered yet.</p>";
+    return;
+  }
+  el.innerHTML = nodes.map(n => {
+    const role  = (n.role || "?").toUpperCase();
+    const color = role === "VALIDATOR" ? "var(--yellow)" : "var(--accent)";
+    const id    = n.node_id || n.vid || "?";
+    return `
+      <div class="node-chip">
+        <span class="role" style="color:${color}">${role} ${id}</span>
+        <span>addr: ${short(n.address, 12)}</span><br/>
+        <span style="color:var(--subtext)">secp256k1 · ${short(n.pub_key || n.pub_key_hex, 12)}</span>
+      </div>`;
+  }).join("");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Update trust chart history
+// ────────────────────────────────────────────────────────────────────────────
+const _trustHistory = {};   // tid -> [score, ...]
+
+function updateTrustChart(scores) {
+  if (!scores) return;
+  Object.entries(scores).forEach(([tid, score]) => {
+    if (!_trustHistory[tid]) _trustHistory[tid] = [];
+    _trustHistory[tid].push(parseFloat(score));
+  });
+
+  const maxLen = Math.max(...Object.values(_trustHistory).map(a => a.length));
+  trustChart.data.labels = Array.from({length: maxLen}, (_, i) => i);
+  trustChart.data.datasets = Object.entries(_trustHistory).map(([tid, arr], i) => ({
+    label:       HOSPITAL_NAMES[tid] || `T${tid}`,
+    data:        arr,
+    borderColor: COLORS[i % COLORS.length],
+    backgroundColor: COLORS[i % COLORS.length] + "20",
+    borderWidth: 1.5,
+    pointRadius: 2,
+    tension:     0.3,
+    fill:        false,
+  }));
+  trustChart.update("none");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Main refresh loop
+// ────────────────────────────────────────────────────────────────────────────
+async function refresh() {
+  // 1. Check service liveness
+  const wireHealth = await fetchJSON(`${WIRE_API}/health`, 2000);
+  const rustHealth = await fetchJSON(`${RUST_API}/health`, 2000);
+
+  setStatus("wire-dot", "wire-status",
+    wireHealth !== null, wireHealth ? "online" : "offline");
+  setStatus("rust-dot", "rust-status",
+    rustHealth !== null, rustHealth ? "online" : "offline");
+
+  // 2. Accuracy log
+  const accData = await fetchJSON(`${WIRE_API}/accuracy`);
+  if (accData && accData.accuracy_log && accData.accuracy_log.length > 0) {
+    const log = accData.accuracy_log;
+    accChart.data.labels   = log.map((_, i) => `R${i}`);
+    accChart.data.datasets[0].data = log;
+    accChart.update("none");
+    document.getElementById("stat-acc").textContent =
+      (log[log.length - 1] * 100).toFixed(2) + "%";
+  }
+
+  // 3. Status summary
+  const status = await fetchJSON(`${WIRE_API}/status`);
+  if (status) {
+    document.getElementById("stat-round").textContent = status.round || "—";
+    renderTrustBars(status.trust);
+    updateTrustChart(status.trust);
+  }
+
+  // 4. Chain data (prefer Rust node directly for real-time blocks)
+  const chainData = await fetchJSON(`${RUST_API}/chain`) ||
+                    await fetchJSON(`${WIRE_API}/chain`);
+  if (chainData) {
+    const blocks = chainData.blocks || [];
+    document.getElementById("stat-blocks").textContent = chainData.chain_length || blocks.length;
+    const isValid = chainData.is_valid;
+    const validEl = document.getElementById("stat-valid");
+    validEl.textContent  = isValid ? "YES" : "NO";
+    validEl.className    = "stat-value " + (isValid ? "green" : "red");
+    renderChainTable(blocks);
+  }
+
+  // 5. Transaction count from Rust stats
+  const stats = await fetchJSON(`${RUST_API}/stats`);
+  if (stats) {
+    document.getElementById("stat-tx").textContent = stats.total_tx || "—";
+  }
+
+  // 6. Nodes / credentials
+  const nodes = await fetchJSON(`${WIRE_API}/nodes`);
+  if (nodes && nodes.length > 0) {
+    renderNodes(nodes);
+  }
+
+  // 7. Timestamp
+  document.getElementById("last-update").textContent =
+    new Date().toLocaleTimeString();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Boot
+// ────────────────────────────────────────────────────────────────────────────
+document.getElementById("wire-url").textContent = WIRE_API;
+refresh();
+setInterval(refresh, REFRESH);
+</script>
+</body>
+</html>

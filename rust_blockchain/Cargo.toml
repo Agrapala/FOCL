@@ -1,0 +1,25 @@
+[package]
+name        = "flobc-blockchain"
+version     = "0.1.0"
+edition     = "2021"
+description = "FLoBC pBFT Blockchain Node — Rust HTTP server for federated learning"
+authors     = ["FLoBC Research"]
+
+[[bin]]
+name = "flobc-blockchain"
+path = "src/main.rs"
+
+[dependencies]
+actix-web  = "4"
+actix-cors = "0.7"
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2       = "0.10"
+hex        = "0.4"
+tokio      = { version = "1", features = ["full"] }
+chrono     = { version = "0.4", features = ["serde"] }
+uuid       = { version = "1",   features = ["v4"] }
+
+[profile.release]
+opt-level = 3
+lto       = true
