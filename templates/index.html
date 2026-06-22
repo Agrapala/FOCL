@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FLoBC — Federated Learning on Blockchain</title>
+<style>
+:root {
+  --bg:      #0d1117;
+  --card:    #161b22;
+  --card2:   #1c2128;
+  --border:  #30363d;
+  --accent:  #58a6ff;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --yellow:  #d29922;
+  --purple:  #a371f7;
+  --orange:  #e05a2b;
+  --text:    #e6edf3;
+  --sub:     #8b949e;
+  --hover:   #21262d;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6;display:flex;height:100vh;overflow:hidden;}
+
+/* ── Sidebar ── */
+#sidebar{width:220px;min-width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;overflow:hidden;}
+#sidebar-header{padding:18px 16px 14px;border-bottom:1px solid var(--border);}
+#sidebar-header h1{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.3px;}
+#sidebar-header p{font-size:11px;color:var(--sub);margin-top:2px;}
+#sidebar nav{flex:1;padding:8px 0;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:var(--sub);font-size:13px;border-left:3px solid transparent;transition:all .15s;}
+.nav-item:hover{background:var(--hover);color:var(--text);}
+.nav-item.active{background:var(--hover);color:var(--accent);border-left-color:var(--accent);}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7;}
+.nav-item.active svg{opacity:1;}
+.nav-section{padding:12px 16px 4px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--sub);font-weight:600;}
+#sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--sub);}
+
+/* ── Main ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+#topbar h2{font-size:16px;font-weight:600;}
+#topbar .badge{padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;}
+.badge-green{background:#1a3626;color:var(--green);}
+.badge-red{background:#3d1a1a;color:var(--red);}
+.badge-blue{background:#1a2640;color:var(--accent);}
+.badge-yellow{background:#3d2e0a;color:var(--yellow);}
+
+#content{flex:1;overflow-y:auto;padding:24px;}
+
+/* ── Section ── */
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 20px;}
+.stat-card .label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.stat-card .value{font-size:26px;font-weight:700;line-height:1;}
+.stat-card .sub{font-size:11px;color:var(--sub);margin-top:4px;}
+
+/* ── Script cards ── */
+.script-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.script-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px;}
+.script-card h3{font-size:14px;font-weight:600;}
+.script-card p{font-size:12px;color:var(--sub);flex:1;}
+.script-card .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--sub);}
+.script-card .meta .time-badge{background:var(--card2);border:1px solid var(--border);padding:2px 8px;border-radius:10px;}
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--accent);color:#0d1117;}
+.btn-green{background:var(--green);color:#0d1117;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--border);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Terminal ── */
+#terminal-panel{margin-top:20px;display:none;}
+#terminal-panel.visible{display:block;}
+.terminal-header{background:#1a1f26;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;}
+.terminal-header .title{font-size:12px;color:var(--sub);font-family:monospace;}
+.terminal-header .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
+.dot-red{background:#f85149;}
+.dot-yellow{background:#d29922;}
+.dot-green{background:#3fb950;}
+#terminal{background:#0d1117;border:1px solid var(--border);border-radius:0 0 8px 8px;padding:14px;font-family:'Cascadia Code','Fira Code','Courier New',monospace;font-size:12px;line-height:1.6;height:420px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+.t-ok{color:#3fb950;}
+.t-err{color:#f85149;}
+.t-warn{color:#d29922;}
+.t-info{color:#58a6ff;}
+.t-dim{color:#8b949e;}
+
+/* ── Blockchain Explorer ── */
+.bc-file-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.bc-file-btn{background:var(--card2);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--sub);transition:all .15s;}
+.bc-file-btn:hover,.bc-file-btn.active{background:var(--hover);color:var(--accent);border-color:var(--accent);}
+.bc-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+.bc-stat{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;}
+.bc-stat .l{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.bc-stat .v{font-size:18px;font-weight:700;margin-top:2px;}
+#blocks-container{display:flex;flex-direction:column;gap:8px;}
+.block-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.block-header{padding:10px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.block-header:hover{background:var(--hover);}
+.block-index{background:var(--accent);color:#0d1117;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;min-width:52px;text-align:center;}
+.block-hash{font-family:monospace;font-size:11px;color:var(--sub);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.block-txcount{font-size:11px;color:var(--sub);white-space:nowrap;}
+.block-valid{font-size:11px;font-weight:600;white-space:nowrap;}
+.block-body{padding:12px 14px;border-top:1px solid var(--border);display:none;}
+.block-body.open{display:block;}
+.block-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:11px;}
+.block-meta .k{color:var(--sub);}
+.block-meta .v{font-family:monospace;word-break:break-all;}
+.tx-table{width:100%;border-collapse:collapse;font-size:11px;}
+.tx-table th{text-align:left;padding:5px 8px;color:var(--sub);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;font-size:10px;}
+.tx-table td{padding:5px 8px;border-bottom:1px solid #21262d;font-family:monospace;}
+.tx-table tr:last-child td{border-bottom:none;}
+.tx-type{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;}
+.tx-MODEL_UPDATE{background:#1a2640;color:#58a6ff;}
+.tx-VALIDATION{background:#1a3626;color:#3fb950;}
+.tx-TRUST_UPDATE{background:#3d2e0a;color:#d29922;}
+.tx-GLOBAL_MODEL{background:#2d1a3d;color:#a371f7;}
+
+/* ── Charts ── */
+#charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.chart-card .chart-title{padding:10px 14px;font-size:12px;font-weight:600;border-bottom:1px solid var(--border);color:var(--sub);}
+.chart-card img{width:100%;display:block;cursor:zoom-in;}
+.chart-card img:hover{opacity:.9;}
+
+/* ── Results ── */
+.result-file-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.result-file-btn{background:var(--card2);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--sub);transition:all .15s;}
+.result-file-btn:hover,.result-file-btn.active{background:var(--hover);color:var(--accent);border-color:var(--accent);}
+.result-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.result-toolbar span{font-size:11px;color:var(--sub);font-family:monospace;flex:1;}
+.toggle-raw{font-size:11px;padding:3px 10px;}
+#json-viewer{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:11px;line-height:1.7;overflow:auto;max-height:560px;white-space:pre-wrap;word-break:break-all;display:none;}
+.json-key{color:#79c0ff;}.json-str{color:#a5d6ff;}.json-num{color:#79c0ff;}.json-bool{color:#ff7b72;}.json-null{color:#8b949e;}
+/* Result dashboard widgets */
+.obj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.obj-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+.obj-card .obj-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--sub);margin-bottom:6px;}
+.obj-card .obj-status{font-size:15px;font-weight:800;margin-bottom:6px;}
+.obj-card.proved{border-color:var(--green);background:#0d1f14;}
+.obj-card.proved .obj-status{color:var(--green);}
+.obj-card.failed{border-color:var(--red);background:#1f0d0d;}
+.obj-card.failed .obj-status{color:var(--red);}
+.obj-card .obj-desc{font-size:10px;color:var(--sub);line-height:1.4;}
+.metric-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.metric-box{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.metric-box .ml{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.metric-box .mv{font-size:20px;font-weight:700;}
+.metric-box .ms{font-size:10px;color:var(--sub);margin-top:2px;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.chart-box{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.chart-box .cb-title{font-size:12px;font-weight:600;margin-bottom:12px;color:var(--sub);}
+.chart-box{position:relative;height:240px;}.chart-box canvas{position:absolute;inset:0;}
+.hosp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.hosp-table th{text-align:left;padding:6px 10px;color:var(--sub);border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+.hosp-table td{padding:7px 10px;border-bottom:1px solid #21262d;}
+.hosp-table tr:last-child td{border-bottom:none;}
+.gain-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:3px;}
+.gain-fill{height:100%;border-radius:3px;background:var(--green);}
+.gain-fill.neg{background:var(--red);}
+.exp-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.exp-tab{padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;background:var(--card2);border:1px solid var(--border);color:var(--sub);transition:all .15s;}
+.exp-tab.active{background:var(--hover);color:var(--accent);border-color:var(--accent);}
+.exp-panel{display:none;}.exp-panel.active{display:block;}
+.sync-bar-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #21262d;font-size:12px;}
+.sync-bar-row:last-child{border-bottom:none;}
+.sync-label{width:80px;font-weight:600;}
+.sync-bar{flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden;}
+.sync-fill{height:100%;border-radius:5px;}
+.sync-val{width:60px;text-align:right;font-family:monospace;color:var(--sub);}
+.section-head{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;}
+.kv-item{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.kv-item .kk{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.kv-item .vv{font-weight:600;word-break:break-all;}
+.bool-yes{color:var(--green);}.bool-no{color:var(--red);}
+
+/* ── Image lightbox ── */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out;}
+#lightbox.visible{display:flex;}
+#lightbox img{max-width:92vw;max-height:92vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+
+/* ── Misc ── */
+.section-title{font-size:18px;font-weight:600;margin-bottom:4px;}
+.section-sub{font-size:13px;color:var(--sub);margin-bottom:20px;}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.empty-state{text-align:center;padding:48px;color:var(--sub);}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-left:4px;}
+.tag-full{background:#1a2640;color:var(--accent);}
+.tag-exp{background:#1a3626;color:var(--green);}
+.tag-stage{background:#3d2e0a;color:var(--yellow);}
+.tag-demo{background:#2d1a3d;color:var(--purple);}
+.run-status{font-size:12px;color:var(--sub);}
+.run-status.running{color:var(--yellow);}
+.run-status.success{color:var(--green);}
+.run-status.error{color:var(--red);}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>FLoBC</h1>
+    <p>Blockchain Federated Learning</p>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-section="home" onclick="showSection('home',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z"/></svg>
+      Dashboard
+    </div>
+
+    <div class="nav-section">Execute</div>
+    <div class="nav-item" data-section="run" onclick="showSection('run',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"/></svg>
+      Run Scripts
+    </div>
+
+    <div class="nav-section">Explore</div>
+    <div class="nav-item" data-section="blockchain" onclick="showSection('blockchain',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5Zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5Zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5Zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5Z"/></svg>
+      Blockchain Explorer
+    </div>
+    <div class="nav-item" data-section="charts" onclick="showSection('charts',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></svg>
+      Charts
+    </div>
+    <div class="nav-item" data-section="results" onclick="showSection('results',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3.75 1.5a.25.25 0 0 0-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V6H9.75A1.75 1.75 0 0 1 8 4.25V1.5ZM9.5 1.76v2.49c0 .138.112.25.25.25h2.49Zm-8-1.51A1.75 1.75 0 0 0 .25 1.75v11.5c0 .966.784 1.75 1.75 1.75H14a1.75 1.75 0 0 0 1.75-1.75V5.5a.75.75 0 0 0-.22-.53l-4-4a.75.75 0 0 0-.53-.22Z"/></svg>
+      Results / JSON
+    </div>
+
+    <div class="nav-section">About</div>
+    <div class="nav-item" data-section="about" onclick="showSection('about',this)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
+      About
+    </div>
+  </nav>
+  <div id="sidebar-footer">
+    Abuzied et al., 2024
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+  <div id="topbar">
+    <h2 id="page-title">Dashboard</h2>
+    <div id="topbar-right"></div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══ HOME ══ -->
+    <div class="section active" id="sec-home">
+      <p class="section-sub">FLoBC — Privacy-Preserving Federated Learning on Blockchain</p>
+
+      <div class="card-grid" id="stats-grid">
+        <div class="stat-card"><div class="label">Chain Length</div><div class="value" id="s-chain">—</div><div class="sub">blocks (incl. genesis)</div></div>
+        <div class="stat-card"><div class="label">Chain Integrity</div><div class="value" id="s-valid">—</div><div class="sub">cryptographic verification</div></div>
+        <div class="stat-card"><div class="label">Objectives Met</div><div class="value" id="s-obj">—</div><div class="sub">out of 4 research objectives</div></div>
+        <div class="stat-card"><div class="label">FL Accuracy</div><div class="value" id="s-acc">—</div><div class="sub">final global model (test set)</div></div>
+        <div class="stat-card"><div class="label">Charts</div><div class="value" id="s-charts">—</div><div class="sub">generated in dashboard/</div></div>
+        <div class="stat-card"><div class="label">Result Files</div><div class="value" id="s-results">—</div><div class="sub">JSON files in results/</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Blockchain Layer</div>
+          <table style="font-size:12px;width:100%;border-collapse:collapse;">
+            <tr><td style="color:var(--sub);padding:4px 0;width:50%">Signing</td><td>Ed25519 (Exonum-compatible)</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Hashing</td><td>SHA-256 / double-SHA-256</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Consensus</td><td>Proof-of-Stake (pBFT &gt;2/3)</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Transactions</td><td>MODEL_UPDATE · VALIDATION · TRUST_UPDATE · GLOBAL_MODEL</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Merkle Tree</td><td>Binary SHA-256 (Exonum-compatible)</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;">FL Layer</div>
+          <table style="font-size:12px;width:100%;border-collapse:collapse;">
+            <tr><td style="color:var(--sub);padding:4px 0;width:50%">Dataset</td><td>Chest X-ray (4 Sri Lankan hospitals)</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Aggregation</td><td>Reputation-weighted FedAvg</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Sync Schemes</td><td>BSP · SSP · BAP</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Byzantine</td><td>Trust scoring + pBFT rejection</td></tr>
+            <tr><td style="color:var(--sub);padding:4px 0">Privacy</td><td>No raw data on-chain (weight hashes only)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;">Quick Actions</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="showSection('run', document.querySelector('[data-section=run]'))">Run Scripts</button>
+        <button class="btn btn-ghost" onclick="showSection('blockchain', document.querySelector('[data-section=blockchain]'))">Blockchain Explorer</button>
+        <button class="btn btn-ghost" onclick="showSection('charts', document.querySelector('[data-section=charts]'))">View Charts</button>
+        <button class="btn btn-ghost" onclick="showSection('results', document.querySelector('[data-section=results]'))">View Results</button>
+      </div>
+    </div>
+
+    <!-- ══ RUN ══ -->
+    <div class="section" id="sec-run">
+      <p class="section-sub">Run any script and watch live terminal output below.</p>
+      <div class="script-grid" id="script-grid">
+        {% for sid, s in scripts.items() %}
+        <div class="script-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h3>{{ s.name }}
+              <span class="tag tag-{{ s.stage }}">{{ s.stage }}</span>
+            </h3>
+          </div>
+          <p>{{ s.desc }}</p>
+          <div class="meta">
+            <span class="time-badge">{{ s.time }}</span>
+            <span id="status-{{ sid }}" class="run-status"></span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-primary" id="btn-{{ sid }}" onclick="runScript('{{ sid }}')">Run</button>
+            <button class="btn btn-red" id="stop-{{ sid }}" onclick="stopScript('{{ sid }}')" style="display:none;">Stop</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div id="terminal-panel">
+        <div class="terminal-header">
+          <div>
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <span class="title" id="terminal-title">terminal</span>
+          <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;" onclick="clearTerminal()">Clear</button>
+        </div>
+        <div id="terminal"></div>
+      </div>
+    </div>
+
+    <!-- ══ BLOCKCHAIN ══ -->
+    <div class="section" id="sec-blockchain">
+      <p class="section-sub">Inspect blocks, transactions, Merkle roots, and PoS votes from any blockchain export.</p>
+      <div class="bc-file-list" id="bc-file-list">
+        <span style="color:var(--sub);font-size:12px;">Loading blockchain files...</span>
+      </div>
+      <div class="bc-summary" id="bc-summary" style="display:none;"></div>
+      <div id="blocks-container"></div>
+    </div>
+
+    <!-- ══ CHARTS ══ -->
+    <div class="section" id="sec-charts">
+      <p class="section-sub">All charts generated by experiments and objective proofs.</p>
+      <div id="charts-grid"></div>
+    </div>
+
+    <!-- ══ RESULTS ══ -->
+    <div class="section" id="sec-results">
+      <p class="section-sub">Visual dashboards for every result file — no raw JSON.</p>
+      <div class="result-file-list" id="result-file-list">
+        <span style="color:var(--sub);font-size:12px;">Loading result files...</span>
+      </div>
+      <div class="result-toolbar">
+        <span id="result-filename"></span>
+        <button class="btn btn-ghost toggle-raw" id="btn-toggle-raw" style="display:none;" onclick="toggleRaw()">Show Raw JSON</button>
+        <button class="btn btn-ghost toggle-raw" id="btn-download" style="display:none;" onclick="downloadResult()">Download</button>
+      </div>
+      <div id="result-display"><div style="color:var(--sub);text-align:center;padding:48px;">Select a file above to view its results.</div></div>
+      <div id="json-viewer"></div>
+    </div>
+
+    <!-- ══ ABOUT ══ -->
+    <div class="section" id="sec-about">
+      <div class="card" style="max-width:720px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">FLoBC — Federated Learning on Blockchain</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">Privacy-Preserving FL Framework for Blockchain Networks</div>
+        <table style="font-size:12px;width:100%;border-collapse:collapse;">
+          <tr><td style="color:var(--sub);padding:5px 0;width:140px;vertical-align:top;">Paper</td><td>Abuzied et al., Cluster Computing, 2024</td></tr>
+          <tr><td style="color:var(--sub);padding:5px 0;vertical-align:top;">DOI</td><td style="font-family:monospace;">10.1007/s10586-024-04273-1</td></tr>
+          <tr><td style="color:var(--sub);padding:5px 0;vertical-align:top;">Authors</td><td>Youssif Abuzied, Mohamed Ghanem, Fadi Dawoud, Habiba Gamal, Eslam Soliman, Hossam Sharara, Tamer ElBatt</td></tr>
+          <tr><td style="color:var(--sub);padding:5px 0;vertical-align:top;">Dataset</td><td>Chest X-ray pneumonia — 4 Sri Lankan hospitals (Galle, Colombo, Kandy, Jaffna)</td></tr>
+        </table>
+        <div class="divider"></div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Research Objectives</div>
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:8px;">
+          <div><span style="color:var(--accent);font-weight:600;">Obj 1</span> — FL platform integrated with blockchain across &ge;4 institutions</div>
+          <div><span style="color:var(--green);font-weight:600;">Obj 2</span> — &ge;5% accuracy improvement per institution through federated training</div>
+          <div><span style="color:var(--yellow);font-weight:600;">Obj 3</span> — Blockchain integrity verification + malicious update prevention</div>
+          <div><span style="color:var(--purple);font-weight:600;">Obj 4</span> — Fully functional prototype with Ed25519 credential management</div>
+        </div>
+        <div class="divider"></div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Run Order</div>
+        <div style="font-family:monospace;font-size:12px;background:var(--bg);padding:12px;border-radius:6px;line-height:2;color:var(--sub);">
+          <span style="color:var(--green)">python</span> demo.py <span style="color:var(--sub)">             # quick sanity check</span><br>
+          <span style="color:var(--green)">python</span> train_local_nodes.py <span style="color:var(--sub)">   # stage 1</span><br>
+          <span style="color:var(--green)">python</span> run_pneumonia.py <span style="color:var(--sub)">       # stage 2</span><br>
+          <span style="color:var(--green)">python</span> evaluate_objectives.py <span style="color:var(--sub)"> # stage 3</span><br>
+          <span style="color:var(--accent)">python</span> run_all.py <span style="color:var(--sub)">            # OR run everything at once</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt=""/>
+</div>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────────────────
+const TITLES = {home:'Dashboard',run:'Run Scripts',blockchain:'Blockchain Explorer',charts:'Charts',results:'Results / JSON',about:'About'};
+let currentSection = 'home';
+
+function showSection(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('page-title').textContent = TITLES[name] || name;
+  currentSection = name;
+  if (name === 'home')       loadStats();
+  if (name === 'blockchain') loadBlockchainList();
+  if (name === 'charts')     loadCharts();
+  if (name === 'results')    loadResultsList();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function loadStats() {
+  fetch('/api/stats').then(r => r.json()).then(d => {
+    const set = (id, val, color) => {
+      const el = document.getElementById(id);
+      el.textContent = val;
+      if (color) el.style.color = color;
+    };
+    set('s-chain',   d.chain_length   != null ? d.chain_length   : '—');
+    const validColor = d.chain_valid === true ? 'var(--green)' : d.chain_valid === false ? 'var(--red)' : '';
+    set('s-valid',   d.chain_valid    != null ? (d.chain_valid ? 'VALID' : 'INVALID') : '—', validColor);
+    set('s-obj',     d.objectives_met != null ? d.objectives_met + ' / 4' : '—');
+    set('s-acc',     d.fl_final_acc   != null ? (d.fl_final_acc * 100).toFixed(1) + '%' : '—');
+    set('s-charts',  d.charts_count);
+    set('s-results', d.results_count);
+  }).catch(() => {});
+}
+loadStats();
+
+// ── Script Runner ─────────────────────────────────────────────────────────────
+let activeEventSource = null;
+let activeScriptId    = null;
+
+function runScript(sid) {
+  if (activeEventSource) { activeEventSource.close(); }
+
+  const terminal = document.getElementById('terminal');
+  const panel    = document.getElementById('terminal-panel');
+  document.getElementById('terminal-title').textContent = sid;
+  panel.classList.add('visible');
+  terminal.innerHTML = '';
+
+  // Update button states
+  if (activeScriptId) resetBtn(activeScriptId);
+  activeScriptId = sid;
+  document.getElementById('btn-' + sid).disabled = true;
+  document.getElementById('stop-' + sid).style.display = 'inline-flex';
+  setStatus(sid, 'running', 'Running...');
+
+  const es = new EventSource('/api/run/' + sid);
+  activeEventSource = es;
+
+  es.onmessage = e => {
+    if (e.data.startsWith('__EXIT__:')) {
+      const code = parseInt(e.data.split(':')[1]);
+      es.close();
+      activeEventSource = null;
+      resetBtn(sid);
+      if (code === 0) {
+        setStatus(sid, 'success', 'Done');
+        appendLine(terminal, '[ Process exited successfully ]', 'ok');
+        if (currentSection === 'home') loadStats();
+      } else {
+        setStatus(sid, 'error', 'Exit code ' + code);
+        appendLine(terminal, '[ Process exited with code ' + code + ' ]', 'err');
+      }
+      return;
+    }
+    appendLine(terminal, e.data, classifyLine(e.data));
+    terminal.scrollTop = terminal.scrollHeight;
+  };
+
+  es.onerror = () => {
+    es.close();
+    activeEventSource = null;
+    resetBtn(sid);
+    setStatus(sid, 'error', 'Connection error');
+    appendLine(terminal, '[ Connection lost ]', 'err');
+  };
+}
+
+function stopScript(sid) {
+  if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
+  resetBtn(sid);
+  setStatus(sid, 'error', 'Stopped');
+  const terminal = document.getElementById('terminal');
+  appendLine(terminal, '[ Stopped by user ]', 'warn');
+}
+
+function resetBtn(sid) {
+  const btn  = document.getElementById('btn-' + sid);
+  const stop = document.getElementById('stop-' + sid);
+  if (btn)  { btn.disabled = false; }
+  if (stop) { stop.style.display = 'none'; }
+}
+
+function setStatus(sid, cls, text) {
+  const el = document.getElementById('status-' + sid);
+  if (!el) return;
+  el.className = 'run-status ' + cls;
+  el.textContent = text;
+}
+
+function appendLine(el, text, cls) {
+  const span = document.createElement('span');
+  if (cls) span.className = 't-' + cls;
+  span.textContent = text + '\n';
+  el.appendChild(span);
+}
+
+function classifyLine(line) {
+  const l = line.toLowerCase();
+  if (l.includes('error') || l.includes('traceback') || l.includes('exception') || l.includes('failed')) return 'err';
+  if (l.includes('warning') || l.includes('warn'))     return 'warn';
+  if (l.includes('done') || l.includes('valid') || l.includes('proved') || l.includes('success') || l.includes('chain') || l.includes('block #')) return 'ok';
+  if (l.includes('round') || l.includes('acc') || l.includes('running') || l.startsWith('  [')) return 'info';
+  if (l.trim() === '' || l.startsWith('─') || l.startsWith('═')) return 'dim';
+  return '';
+}
+
+function clearTerminal() {
+  document.getElementById('terminal').innerHTML = '';
+}
+
+// ── Blockchain Explorer ───────────────────────────────────────────────────────
+let currentBcFile = null;
+
+function loadBlockchainList() {
+  fetch('/api/blockchain/list').then(r => r.json()).then(files => {
+    const el = document.getElementById('bc-file-list');
+    if (!files.length) { el.innerHTML = '<span style="color:var(--sub);font-size:12px;">No blockchain files found. Run a script first.</span>'; return; }
+    el.innerHTML = '';
+    files.forEach(f => {
+      const btn = document.createElement('div');
+      btn.className = 'bc-file-btn';
+      btn.textContent = f.name + ' (' + f.size_kb + ' KB)';
+      btn.onclick = () => loadBlockchain(f.path, btn);
+      el.appendChild(btn);
+    });
+    // Auto-load blockchain_proof.json if present
+    const proof = files.find(f => f.name === 'blockchain_proof.json');
+    if (proof) {
+      const btn = el.querySelector('.bc-file-btn');
+      loadBlockchain(proof.path, el.querySelectorAll('.bc-file-btn')[files.indexOf(proof)]);
+    }
+  });
+}
+
+function loadBlockchain(path, btn) {
+  document.querySelectorAll('.bc-file-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  currentBcFile = path;
+  document.getElementById('blocks-container').innerHTML = '<div class="empty-state"><div class="spinner"></div><br>Loading...</div>';
+  document.getElementById('bc-summary').style.display = 'none';
+
+  fetch('/api/blockchain/data?file=' + encodeURIComponent(path))
+    .then(r => r.json())
+    .then(data => renderBlockchain(data))
+    .catch(() => {
+      document.getElementById('blocks-container').innerHTML = '<div class="empty-state" style="color:var(--red)">Failed to load file.</div>';
+    });
+}
+
+function renderBlockchain(data) {
+  const blocks   = data.blocks || [];
+  const summary  = document.getElementById('bc-summary');
+  const container = document.getElementById('blocks-container');
+
+  // Summary bar
+  summary.style.display = 'grid';
+  summary.innerHTML = `
+    <div class="bc-stat"><div class="l">Blocks</div><div class="v">${data.chain_length || blocks.length}</div></div>
+    <div class="bc-stat"><div class="l">Chain Valid</div><div class="v" style="color:${data.is_valid ? 'var(--green)' : 'var(--red)'}">${data.is_valid ? 'YES' : 'NO'}</div></div>
+    <div class="bc-stat"><div class="l">Total TX</div><div class="v">${blocks.reduce((s,b) => s + (b.transactions||[]).length, 0)}</div></div>
+    <div class="bc-stat"><div class="l">Transactions/Block</div><div class="v" style="font-size:14px">${blocks.length > 1 ? Math.round(blocks.slice(1).reduce((s,b)=>s+(b.transactions||[]).length,0)/(blocks.length-1)) : '—'} avg</div></div>
+  `;
+
+  if (!blocks.length) { container.innerHTML = '<div class="empty-state">No blocks found.</div>'; return; }
+
+  container.innerHTML = '';
+  blocks.forEach(blk => {
+    const txs  = blk.transactions || [];
+    const card = document.createElement('div');
+    card.className = 'block-card';
+    card.innerHTML = `
+      <div class="block-header" onclick="toggleBlock(this)">
+        <span class="block-index">Block #${blk.index}</span>
+        <span class="block-hash">${blk.block_hash || '—'}</span>
+        <span class="block-txcount">${txs.length} tx</span>
+        <span class="block-valid" style="color:${blk.index===0?'var(--sub)':'var(--green)'}">${blk.index===0?'genesis':'valid'}</span>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--sub)" class="chevron"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"/></svg>
+      </div>
+      <div class="block-body">
+        <div class="block-meta">
+          <div><div class="k">Previous Hash</div><div class="v">${blk.previous_hash || '—'}</div></div>
+          <div><div class="k">Merkle Root</div><div class="v">${blk.merkle_root || '—'}</div></div>
+          <div><div class="k">Validator</div><div class="v">${blk.validator || '—'}</div></div>
+          <div><div class="k">Timestamp</div><div class="v">${blk.timestamp ? new Date(blk.timestamp * 1000).toLocaleString() : '—'}</div></div>
+        </div>
+        ${txs.length ? `
+        <div style="font-size:11px;font-weight:600;color:var(--sub);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Transactions</div>
+        <table class="tx-table">
+          <thead><tr><th>Type</th><th>Sender (author)</th><th>TX Hash</th><th>Payload</th></tr></thead>
+          <tbody>
+            ${txs.map(tx => `
+              <tr>
+                <td><span class="tx-type tx-${tx.tx_type}">${tx.tx_type}</span></td>
+                <td>${(tx.author || tx.sender || '').substring(0,16)}...</td>
+                <td>${(tx.tx_hash || '').substring(0,14)}...</td>
+                <td style="color:var(--sub)">${payloadSummary(tx)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>` : '<div style="color:var(--sub);font-size:11px;">No transactions (genesis block)</div>'}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function payloadSummary(tx) {
+  const p = tx.payload || {};
+  if (tx.tx_type === 'MODEL_UPDATE') return `trainer=${p.trainer_id} round=${p.round_num} noise=${p.noise_level}`;
+  if (tx.tx_type === 'VALIDATION')   return `val=${p.validator_id} trainer=${p.trainer_id} score=${p.score?.toFixed?.(3) ?? p.score}`;
+  if (tx.tx_type === 'TRUST_UPDATE') return `trainer=${p.trainer_id} ${p.old_score?.toFixed?.(3) ?? '?'} → ${p.new_score?.toFixed?.(3) ?? '?'}`;
+  if (tx.tx_type === 'GLOBAL_MODEL') return `round=${p.round_num} acc=${p.accuracy?.toFixed?.(3) ?? p.accuracy}`;
+  return JSON.stringify(p).substring(0, 60) + '...';
+}
+
+function toggleBlock(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('open');
+  if (chevron) chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+function loadCharts() {
+  fetch('/api/charts/list').then(r => r.json()).then(files => {
+    const grid = document.getElementById('charts-grid');
+    if (!files.length) { grid.innerHTML = '<div class="empty-state">No charts found. Run experiments first.</div>'; return; }
+    grid.innerHTML = '';
+    files.forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'chart-card';
+      const title = f.replace('.png','').replace(/_/g,' ');
+      card.innerHTML = `
+        <div class="chart-title">${title}</div>
+        <img src="/api/charts/${encodeURIComponent(f)}" alt="${f}" loading="lazy" onclick="openLightbox(this.src)"/>`;
+      grid.appendChild(card);
+    });
+  });
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
+let currentResultFile = null;
+let rawVisible = false;
+const activeCharts = {};
+
+function destroyCharts() {
+  Object.values(activeCharts).forEach(c => c.destroy());
+  Object.keys(activeCharts).forEach(k => delete activeCharts[k]);
+}
+
+function mkChart(id, type, labels, datasets, extra={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (activeCharts[id]) activeCharts[id].destroy();
+  activeCharts[id] = new Chart(ctx, {
+    type, data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', font:{size:10}, maxTicksLimit: 12 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } }
+      }, ...extra
+    }
+  });
+}
+
+function loadResultsList() {
+  fetch('/api/results/list').then(r => r.json()).then(files => {
+    const el = document.getElementById('result-file-list');
+    if (!files.length) { el.innerHTML = '<span style="color:var(--sub);font-size:12px;">No result files found.</span>'; return; }
+    el.innerHTML = '';
+    files.forEach(f => {
+      const btn = document.createElement('div');
+      btn.className = 'result-file-btn';
+      btn.textContent = f.name + ' (' + f.size_kb + ' KB)';
+      btn.onclick = () => loadResult(f.name, btn);
+      el.appendChild(btn);
+    });
+  });
+}
+
+function loadResult(filename, btn) {
+  document.querySelectorAll('.result-file-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  currentResultFile = filename;
+  rawVisible = false;
+  document.getElementById('result-filename').textContent = filename;
+  document.getElementById('btn-download').style.display = 'inline-flex';
+  document.getElementById('btn-toggle-raw').style.display = 'inline-flex';
+  document.getElementById('btn-toggle-raw').textContent = 'Show Raw JSON';
+  document.getElementById('json-viewer').style.display = 'none';
+  document.getElementById('result-display').innerHTML = '<div style="text-align:center;padding:32px;"><span class="spinner"></span></div>';
+  destroyCharts();
+
+  fetch('/api/results/data?file=' + encodeURIComponent(filename))
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('json-viewer').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+      renderResult(filename, data);
+    })
+    .catch(() => {
+      document.getElementById('result-display').innerHTML = '<div class="empty-state" style="color:var(--red)">Failed to load file.</div>';
+    });
+}
+
+function toggleRaw() {
+  rawVisible = !rawVisible;
+  document.getElementById('json-viewer').style.display = rawVisible ? 'block' : 'none';
+  document.getElementById('result-display').style.display = rawVisible ? 'none' : 'block';
+  document.getElementById('btn-toggle-raw').textContent = rawVisible ? 'Show Dashboard' : 'Show Raw JSON';
+}
+
+function downloadResult() {
+  if (!currentResultFile) return;
+  window.location.href = '/api/download/results/' + encodeURIComponent(currentResultFile);
+}
+
+// ── Smart renderer dispatcher ────────────────────────────────────────────────
+function renderResult(filename, data) {
+  const el = document.getElementById('result-display');
+  if (filename === 'objectives_proof.json') { el.innerHTML = ''; renderObjectivesProof(el, data); }
+  else if (filename === 'paper_experiments.json') { el.innerHTML = ''; renderPaperExperiments(el, data); }
+  else if (filename.startsWith('blockchain') || filename.includes('chain')) { el.innerHTML = ''; renderBlockchainSummary(el, data); }
+  else if (filename === 'pneumonia_results.json' || filename === 'all_results.json') { el.innerHTML = ''; renderGenericDashboard(el, data); }
+  else { el.innerHTML = ''; renderGenericDashboard(el, data); }
+}
+
+// ── Objectives Proof renderer ────────────────────────────────────────────────
+function renderObjectivesProof(el, d) {
+  const objs = [
+    { key:'objective_1', label:'Objective 1', desc:'FL platform + blockchain across ≥4 institutions' },
+    { key:'objective_2', label:'Objective 2', desc:'≥5% accuracy gain per institution' },
+    { key:'objective_3', label:'Objective 3', desc:'Blockchain integrity + malicious prevention' },
+    { key:'objective_4', label:'Objective 4', desc:'Fully functional prototype + credentials' },
+  ];
+
+  // Objective cards
+  let objHtml = '<div class="obj-grid">';
+  objs.forEach(o => {
+    const obj = d[o.key] || {};
+    const met = obj.met;
+    const cls = met ? 'proved' : 'failed';
+    const statusText = met === undefined ? '—' : met ? 'PROVED' : 'NEEDS REVIEW';
+    objHtml += `<div class="obj-card ${cls}">
+      <div class="obj-num">${o.label}</div>
+      <div class="obj-status">${statusText}</div>
+      <div class="obj-desc">${o.desc}</div>
+    </div>`;
+  });
+  objHtml += '</div>';
+
+  // Top metrics
+  const o1 = d.objective_1 || {}, o3 = d.objective_3 || {}, o4 = d.objective_4 || {};
+  const acc = d.fl_accuracy_log || [];
+  const finalAcc = acc.length ? (acc[acc.length-1]*100).toFixed(1)+'%' : '—';
+  const metricsHtml = `<div class="metric-row">
+    <div class="metric-box"><div class="ml">Chain Length</div><div class="mv">${o1.chain_length ?? '—'}</div><div class="ms">blocks incl. genesis</div></div>
+    <div class="metric-box"><div class="ml">Chain Valid</div><div class="mv ${o1.chain_valid?'bool-yes':'bool-no'}">${o1.chain_valid?'YES':'NO'}</div><div class="ms">cryptographic check</div></div>
+    <div class="metric-box"><div class="ml">Total Transactions</div><div class="mv">${o1.total_tx ?? '—'}</div><div class="ms">across all blocks</div></div>
+    <div class="metric-box"><div class="ml">Institutions</div><div class="mv">${o1.n_institutions ?? '—'}</div><div class="ms">hospitals + ${o1.n_validators ?? '?'} validators</div></div>
+    <div class="metric-box"><div class="ml">FL Final Accuracy</div><div class="mv" style="color:var(--accent)">${finalAcc}</div><div class="ms">global model test set</div></div>
+    <div class="metric-box"><div class="ml">Tamper Detected</div><div class="mv ${o3.tamper_detected?'bool-yes':'bool-no'}">${o3.tamper_detected===undefined?'—':o3.tamper_detected?'YES':'NO'}</div><div class="ms">blockchain tamper-evident</div></div>
+  </div>`;
+
+  // Per-hospital table
+  const perHosp = (d.objective_2 || {}).per_hospital || {};
+  let hospRows = '';
+  Object.entries(perHosp).forEach(([nid, h]) => {
+    const g = h.gain || 0;
+    const barW = Math.min(Math.abs(g)*400, 100);
+    const barCls = g >= 0 ? '' : ' neg';
+    hospRows += `<tr>
+      <td style="font-weight:600">${nid}</td>
+      <td>${h.hospital?.replace('Hospital_','') ?? nid}</td>
+      <td>${(h.local*100).toFixed(1)}%</td>
+      <td style="color:var(--accent)">${(h.fl*100).toFixed(1)}%</td>
+      <td>
+        <span style="color:${g>=0.05?'var(--green)':g>=0?'var(--yellow)':'var(--red)'};font-weight:600">${g>=0?'+':''}${(g*100).toFixed(1)}pp</span>
+        <div class="gain-bar"><div class="gain-fill${barCls}" style="width:${barW}%"></div></div>
+      </td>
+      <td><span style="color:${h.met?'var(--green)':'var(--red)'};font-weight:700">${h.met?'YES':'NO'}</span></td>
+    </tr>`;
+  });
+  const hospTable = Object.keys(perHosp).length ? `
+    <div class="section-head">Per-Hospital Accuracy (Objective 2)</div>
+    <table class="hosp-table" style="margin-bottom:20px;">
+      <thead><tr><th>ID</th><th>Hospital</th><th>Local Only</th><th>After FL</th><th>Gain</th><th>≥5%</th></tr></thead>
+      <tbody>${hospRows}</tbody>
+    </table>` : '';
+
+  // Charts
+  const chartsHtml = `<div class="chart-row">
+    <div class="chart-box"><div class="cb-title">FL Global Accuracy Convergence</div><canvas id="ch-acc"></canvas></div>
+    <div class="chart-box"><div class="cb-title">Byzantine Trust Score Evolution</div><canvas id="ch-trust"></canvas></div>
+  </div>`;
+
+  // TX types
+  const txCounts = o1.tx_counts || {};
+  const txHtml = Object.keys(txCounts).length ? `
+    <div class="section-head">Transaction Type Breakdown</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:20px;">
+      ${Object.entries(txCounts).map(([t,c])=>`<div class="metric-box"><div class="ml">${t.replace('_',' ')}</div><div class="mv" style="font-size:16px">${c}</div></div>`).join('')}
+    </div>` : '';
+
+  el.innerHTML = objHtml + metricsHtml + chartsHtml + hospTable + txHtml;
+
+  // Draw accuracy chart
+  if (acc.length) {
+    const labels = acc.map((_,i) => 'R'+i);
+    mkChart('ch-acc','line', labels, [{
+      label:'FL Accuracy', data: acc.map(v=>+(v*100).toFixed(2)),
+      borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,.1)', borderWidth:2, pointRadius:2, fill:true
+    }]);
+  }
+
+  // Draw trust chart
+  const trustLog = (d.objective_3||{}).byz_trust_log || d.fl_trust_log || {};
+  if (Object.keys(trustLog).length) {
+    const colors = ['#3fb950','#58a6ff','#d29922','#f85149'];
+    const hospNames = ['Galle','Colombo','Kandy','Jaffna'];
+    const datasets = Object.entries(trustLog).map(([tid, vals], i) => ({
+      label: hospNames[i]||('Node '+tid), data: vals.map(v=>+(v*100).toFixed(2)),
+      borderColor: colors[i]||'#aaa', borderWidth: 2, pointRadius: 1, fill: false,
+      borderDash: tid==='3'||tid===3 ? [4,3] : []
+    }));
+    const maxLen = Math.max(...Object.values(trustLog).map(v=>v.length));
+    mkChart('ch-trust','line', Array.from({length:maxLen},(_,i)=>'R'+i), datasets);
+  }
+}
+
+// ── Paper Experiments renderer ───────────────────────────────────────────────
+let _paperData = null;
+
+function renderPaperExperiments(el, d) {
+  _paperData = d;
+  const bm = d.benchmark || {};
+  const lastC = bm.centralized?.length  ? (bm.centralized[bm.centralized.length-1]*100).toFixed(1)+'%'  : '—';
+  const lastD = bm.decentralized?.length ? (bm.decentralized[bm.decentralized.length-1]*100).toFixed(1)+'%' : '—';
+
+  el.innerHTML = `
+    <div class="exp-tabs">
+      <div class="exp-tab active" onclick="switchExpTab(0,this)">Benchmark (§5.1)</div>
+      <div class="exp-tab" onclick="switchExpTab(1,this)">T/V Ratio (§5.2)</div>
+      <div class="exp-tab" onclick="switchExpTab(2,this)">Reward-Penalty (§5.3)</div>
+      <div class="exp-tab" onclick="switchExpTab(3,this)">Sync Schemes (§5.4)</div>
+    </div>
+    <div class="exp-panel active" id="ep-0">
+      <div class="chart-row">
+        <div class="chart-box"><div class="cb-title">Centralized vs Decentralized Accuracy</div><canvas id="ch-bm"></canvas></div>
+        <div class="metric-box" style="display:flex;flex-direction:column;justify-content:center;gap:16px;min-height:240px;">
+          <div><div class="ml">Centralized Final</div><div class="mv" style="color:var(--orange)">${lastC}</div></div>
+          <div><div class="ml">Decentralized Final</div><div class="mv" style="color:var(--accent)">${lastD}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="exp-panel" id="ep-1">
+      <div class="chart-row">
+        <div class="chart-box"><div class="cb-title">Max Accuracy per T/V Config</div><canvas id="ch-e1b"></canvas></div>
+        <div class="chart-box"><div class="cb-title">Accuracy Curves per Config</div><canvas id="ch-e1l"></canvas></div>
+      </div>
+    </div>
+    <div class="exp-panel" id="ep-2">
+      <div class="chart-row">
+        <div class="chart-box"><div class="cb-title">Scoring vs Control Accuracy</div><canvas id="ch-e2a"></canvas></div>
+        <div class="chart-box"><div class="cb-title">Trust Score Evolution</div><canvas id="ch-e2t"></canvas></div>
+      </div>
+    </div>
+    <div class="exp-panel" id="ep-3">
+      <div class="section-head" style="margin-bottom:14px;">Synchronisation Scheme Comparison</div>
+      <div id="sync-bars" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px;max-width:560px;"></div>
+    </div>`;
+
+  // Draw only the active (benchmark) tab chart
+  setTimeout(() => drawPaperChart(0), 30);
+}
+
+function drawPaperChart(idx) {
+  if (!_paperData) return;
+  const bm   = _paperData.benchmark    || {};
+  const exp1 = _paperData.exp1_ratio   || {};
+  const exp2 = _paperData.exp2_reward  || {};
+  const exp3 = _paperData.exp3_sync    || {};
+
+  if (idx === 0) {
+    if (bm.centralized && bm.decentralized) {
+      const n = Math.max(bm.centralized.length, bm.decentralized.length);
+      mkChart('ch-bm','line',Array.from({length:n},(_,i)=>'Iter '+(i+1)),[
+        {label:'Centralized', data:bm.centralized.map(v=>+(v*100).toFixed(2)), borderColor:'#e05a2b', borderWidth:2, pointRadius:2, fill:false},
+        {label:'Decentralized (FLoBC)', data:bm.decentralized.map(v=>+(v*100).toFixed(2)), borderColor:'#58a6ff', borderWidth:2, pointRadius:2, fill:false}
+      ]);
+    }
+  } else if (idx === 1) {
+    if (Object.keys(exp1).length) {
+      const labels = Object.keys(exp1);
+      mkChart('ch-e1b','bar',labels,[{
+        label:'Max Accuracy (%)', data:labels.map(l=>+(exp1[l].max_acc*100).toFixed(2)),
+        backgroundColor:['rgba(88,166,255,.7)','rgba(63,185,80,.7)','rgba(210,153,34,.7)'], borderRadius:4
+      }]);
+      const maxLen = Math.max(...labels.map(l=>(exp1[l].accuracy_log||[]).length));
+      mkChart('ch-e1l','line',Array.from({length:maxLen},(_,i)=>'R'+(i+1)),
+        labels.map((l,i)=>({
+          label:l, data:(exp1[l].accuracy_log||[]).map(v=>+(v*100).toFixed(2)),
+          borderColor:['#58a6ff','#3fb950','#d29922'][i], borderWidth:2, pointRadius:1, fill:false
+        })));
+    }
+  } else if (idx === 2) {
+    if (exp2.scoring && exp2.control) {
+      const n = Math.max(exp2.scoring.length, exp2.control.length);
+      mkChart('ch-e2a','line',Array.from({length:n},(_,i)=>'Iter '+(i+1)),[
+        {label:'Scoring (reward-penalty)', data:exp2.scoring.map(v=>+(v*100).toFixed(2)), borderColor:'#58a6ff', borderWidth:2, pointRadius:2, fill:false},
+        {label:'Control (uniform trust)', data:exp2.control.map(v=>+(v*100).toFixed(2)), borderColor:'#e05a2b', borderWidth:2, pointRadius:2, fill:false, borderDash:[5,3]}
+      ]);
+    }
+    if (exp2.trust_log) {
+      const maxLen = Math.max(...Object.values(exp2.trust_log).map(v=>v.length));
+      mkChart('ch-e2t','line',Array.from({length:maxLen},(_,i)=>'R'+(i+1)),
+        Object.entries(exp2.trust_log).map(([k,v],i)=>({
+          label:['Galle','Colombo','Kandy','Jaffna'][i]||('T'+k),
+          data:v.map(x=>+(x*100).toFixed(2)),
+          borderColor:['#3fb950','#58a6ff','#d29922','#f85149'][i], borderWidth:2, pointRadius:1, fill:false
+        })));
+    }
+  } else if (idx === 3) {
+    const syncEl = document.getElementById('sync-bars');
+    if (syncEl && Object.keys(exp3).length) {
+      const sColors={'BSP':'#e05a2b','SSP':'#58a6ff','BAP_1.0':'#3fb950','BAP_0.6':'#a371f7'};
+      const maxVal = Math.max(...Object.values(exp3).map(r=>r.final_accuracy||0));
+      syncEl.innerHTML = Object.entries(exp3).map(([name, r]) => {
+        const acc = r.final_accuracy || 0;
+        const w = maxVal > 0 ? (acc/maxVal*100).toFixed(1) : 0;
+        return `<div class="sync-bar-row">
+          <span class="sync-label">${name}</span>
+          <div class="sync-bar"><div class="sync-fill" style="width:${w}%;background:${sColors[name]||'#58a6ff'}"></div></div>
+          <span class="sync-val">${(acc*100).toFixed(1)}%</span>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function switchExpTab(idx, btn) {
+  document.querySelectorAll('.exp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.exp-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ep-'+idx).classList.add('active');
+  setTimeout(() => drawPaperChart(idx), 30);
+}
+
+// ── Blockchain Summary renderer ──────────────────────────────────────────────
+function renderBlockchainSummary(el, d) {
+  const blocks = d.blocks || [];
+  const txTypes = {};
+  blocks.slice(1).forEach(b => (b.transactions||[]).forEach(tx => {
+    txTypes[tx.tx_type] = (txTypes[tx.tx_type]||0)+1;
+  }));
+  const totalTx = Object.values(txTypes).reduce((a,b)=>a+b,0);
+
+  el.innerHTML = `
+    <div class="metric-row">
+      <div class="metric-box"><div class="ml">Chain Length</div><div class="mv">${d.chain_length??blocks.length}</div></div>
+      <div class="metric-box"><div class="ml">Chain Valid</div><div class="mv ${d.is_valid?'bool-yes':'bool-no'}">${d.is_valid?'YES':'NO'}</div></div>
+      <div class="metric-box"><div class="ml">Total Transactions</div><div class="mv">${totalTx}</div></div>
+      <div class="metric-box"><div class="ml">Avg TX / Block</div><div class="mv">${blocks.length>1?Math.round(totalTx/(blocks.length-1)):'—'}</div></div>
+    </div>
+    <div class="section-head">Transaction Types</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:20px;">
+      ${Object.entries(txTypes).map(([t,c])=>`<div class="metric-box"><div class="ml">${t.replace(/_/g,' ')}</div><div class="mv" style="font-size:18px">${c}</div></div>`).join('')}
+    </div>
+    <div class="section-head">Block Summary</div>
+    <table class="hosp-table">
+      <thead><tr><th>#</th><th>Block Hash</th><th>TX Count</th><th>Validator</th></tr></thead>
+      <tbody>${blocks.slice(0,20).map(b=>`<tr>
+        <td style="font-weight:700;color:var(--accent)">${b.index}</td>
+        <td style="font-family:monospace;font-size:10px">${(b.block_hash||'').substring(0,20)}...</td>
+        <td>${(b.transactions||[]).length}</td>
+        <td style="font-family:monospace;font-size:10px">${(b.validator||'').substring(0,14)}${b.validator?.length>14?'...':''}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    ${blocks.length>20?`<div style="color:var(--sub);font-size:11px;margin-top:8px;">Showing first 20 of ${blocks.length} blocks. Use Blockchain Explorer for full view.</div>`:''}`;
+}
+
+// ── Generic JSON dashboard ───────────────────────────────────────────────────
+function renderGenericDashboard(el, d) {
+  let html = '';
+  Object.entries(d).forEach(([key, val]) => {
+    if (Array.isArray(val) && val.every(v=>typeof v==='number')) {
+      // Numeric array → small chart
+      html += `<div class="chart-box" style="margin-bottom:14px;">
+        <div class="cb-title">${key}</div>
+        <canvas id="ch-gen-${key}" style="max-height:160px;"></canvas>
+      </div>`;
+    } else if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      // Object → kv grid
+      html += `<div class="section-head">${key}</div>
+        <div class="kv-grid" style="margin-bottom:16px;">
+        ${Object.entries(val).slice(0,12).map(([k,v])=>`<div class="kv-item"><div class="kk">${k}</div>
+          <div class="vv ${typeof v==='boolean'?(v?'bool-yes':'bool-no'):''}">
+            ${typeof v==='boolean'?(v?'YES':'NO'):typeof v==='number'?(Number.isInteger(v)?v:v.toFixed(4)):String(v).substring(0,80)}
+          </div></div>`).join('')}
+        </div>`;
+    } else if (typeof val !== 'object') {
+      html += `<div class="kv-item" style="margin-bottom:8px;"><div class="kk">${key}</div>
+        <div class="vv ${typeof val==='boolean'?(val?'bool-yes':'bool-no'):''}">
+          ${typeof val==='boolean'?(val?'YES':'NO'):String(val)}
+        </div></div>`;
+    }
+  });
+  el.innerHTML = html || '<div class="empty-state">No displayable content found.</div>';
+
+  // Draw any numeric array charts
+  Object.entries(d).forEach(([key, val]) => {
+    if (Array.isArray(val) && val.every(v=>typeof v==='number')) {
+      mkChart('ch-gen-'+key,'line',val.map((_,i)=>String(i)),[{
+        label:key, data:val.map(v=>+v.toFixed(4)),
+        borderColor:'#58a6ff', borderWidth:2, pointRadius:1, fill:false
+      }]);
+    }
+  });
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let cls='json-num';
+      if(/^"/.test(m)) cls=/:$/.test(m)?'json-key':'json-str';
+      else if(/true|false/.test(m)) cls='json-bool';
+      else if(/null/.test(m)) cls='json-null';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('visible');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('visible');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+</body>
+</html>
